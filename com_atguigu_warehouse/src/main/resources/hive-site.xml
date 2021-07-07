@@ -53,24 +53,22 @@
   <property>
       <name>hive.metastore.uris</name>
       <value>thrift://hadoop101:9083</value>
-</property>
-<!-- hiveserver2 -->
-        <property>
-                 <name>hive.server2.thrift.port</name>
-                 <value>10000</value>
-        </property>
-
-        <property>
-                <name>hive.server2.thrift.bind.host</name>
-                <value>hadoop101</value>
-        </property>
-
-<property>
-    <name>hive.metastore.event.db.notification.api.auth</name>
-    <value>false</value>
-  </property>
-<property>
-    <name>hive.server2.active.passive.ha.enable</name>
-    <value>true</value>
-  </property>
+    </property>
+    <!-- hiveserver2 -->
+    <property>
+         <name>hive.server2.thrift.port</name>
+         <value>10000</value>
+    </property>
+    <property>
+        <name>hive.server2.thrift.bind.host</name>
+        <value>hadoop101</value>
+    </property>
+    <property>
+        <name>hive.metastore.event.db.notification.api.auth</name>
+        <value>false</value>
+      </property>
+    <property>
+        <name>hive.server2.active.passive.ha.enable</name>
+        <value>true</value>
+    </property>
 </configuration>

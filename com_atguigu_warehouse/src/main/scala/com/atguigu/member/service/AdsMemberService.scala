@@ -4,9 +4,29 @@ import com.atguigu.member.bean.QueryResult
 import com.atguigu.member.dao.DwsMemberDao
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.{SaveMode, SparkSession}
-import org.apache.spark.storage.StorageLevel
 
 object AdsMemberService {
+
+  def queryAdsApi(sparkSession: SparkSession, dt: String): Unit ={
+    import sparkSession.implicits._ //隐式转换
+    val result = DwsMemberDao.queryIdlMemberData(sparkSession).as[QueryResult].where(s"dt='${dt}'")
+    result.cache()
+    // 统计注册来源url人数
+    result.mapPartitions(partition => {
+      partition.map(item => (item.appregurl+"_"+item.dn+"_"+item.dt, 1))
+      //(www.abc.com_webA_20190101,1),(www.123.com_webA_20190101,1)
+    }).groupByKey(_._1)
+      //(www.abc.com_webA_20190101,Iter[(www.abc.com_webA_20190101,1),(www.abc.com_webA_20190101,1)]
+      .mapValues(item => item._2).reduceGroups(_+_) // (www.abc.com_webA_20190101,3)
+      .map(item => {
+        val keys = item._1.split("_")
+        val appregurl = keys(0)
+        val dn = keys(1)
+        val dt = keys(2)
+        (appregurl, item._2, dt, dn)
+      }).toDF().coalesce(1).write.mode(SaveMode.Overwrite).insertInto("ads.ads_register_appregurlnum")
+  }
+
   /**
     * 统计各项指标 使用api
     *
@@ -94,12 +114,19 @@ object AdsMemberService {
     //统计各memberlevel等级 支付金额前三的用户
     import org.apache.spark.sql.functions._   //withColumn,row_number等方法需要导入此包
 //    result.withColumn("name",lit("张三"))
+//    result.withColumn("rownum", row_number().over(
+//      Window.partitionBy("dn", "memberlevel")
+//        .orderBy(desc("paymoney"))
+//    )).where("rownum<4").orderBy("memberlevel", "rownum")
+//      .select("uid", "memberlevel", "register", "appregurl", "regsourcename", "adname"
+//        , "sitename", "vip_level", "paymoney", "rownum", "dt", "dn")
+//        .toDF().coalesce(1).write.mode(SaveMode.Overwrite).insertInto("ads.ads_register_top3memberpay")
 
     result.withColumn("rownum", row_number().over(Window.partitionBy("dn", "memberlevel").orderBy(desc("paymoney"))))
       .where("rownum<4").orderBy("memberlevel", "rownum")
       .select("uid", "memberlevel", "register", "appregurl", "regsourcename", "adname"
         , "sitename", "vip_level", "paymoney", "rownum", "dt", "dn")
-      .coalesce(1).write.mode(SaveMode.Overwrite).insertInto("ads.ads_register_top3memberpay")
+      .toDF().coalesce(1).write.mode(SaveMode.Overwrite).insertInto("ads.ads_register_top3memberpay")
   }
 
 

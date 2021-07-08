@@ -7,7 +7,7 @@ import org.apache.spark.sql.SparkSession
 
 object AdsController {
   def main(args: Array[String]): Unit = {
-//    System.setProperty("HADOOP_USER_NAME", "atguigu")
+    System.setProperty("HADOOP_USER_NAME", "root")
     val sparkConf = new SparkConf().setAppName("ads_qz_controller")//.setMaster("local[*]")
     val sparkSession = SparkSession.builder().config(sparkConf).enableHiveSupport().getOrCreate()
     HiveUtil.openDynamicPartition(sparkSession) //开启动态分区
@@ -17,7 +17,7 @@ object AdsController {
     ssc.hadoopConfiguration.set("fs.defaultFS", "hdfs://mycluster")
     ssc.hadoopConfiguration.set("dfs.nameservices", "mycluster")
     val dt = "20190722"
-    AdsQzService.getTarget(sparkSession, dt)
-//    AdsQzService.getTargetApi(sparkSession, dt)
+//    AdsQzService.getTarget(sparkSession, dt)
+    AdsQzService.getTargetApi(sparkSession, dt)
   }
 }

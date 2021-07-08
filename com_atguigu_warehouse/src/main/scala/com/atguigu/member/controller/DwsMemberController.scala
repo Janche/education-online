@@ -9,7 +9,7 @@ object DwsMemberController {
 
   def main(args: Array[String]): Unit = {
     System.setProperty("HADOOP_USER_NAME", "root")
-    val sparkConf = new SparkConf().setAppName("dws_member_import").setMaster("local[*]")
+    val sparkConf = new SparkConf().setAppName("dws_member_import")//.setMaster("local[*]")
     //      .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
     //      .registerKryoClasses(Array(classOf[DwsMember]))
     val sparkSession = SparkSession.builder().config(sparkConf).enableHiveSupport().getOrCreate()

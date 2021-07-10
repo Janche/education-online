@@ -49,7 +49,7 @@ object AdsMemberService {
         val dn = keys(1)
         val dt = keys(2)
         (appregurl, item._2, dt, dn)
-      }).toDF().coalesce(1).write.mode(SaveMode.Overwrite).insertInto("ads.ads_register_appregurlnum")
+      }).toDF().coalesce(2).write.mode(SaveMode.Overwrite).insertInto("ads.ads_register_appregurlnum")
 
     //统计所属网站人数
     result.mapPartitions(partiton => {
@@ -61,7 +61,7 @@ object AdsMemberService {
         val dn = keys(1)
         val dt = keys(2)
         (sitename, item._2, dt, dn)
-      }).toDF().coalesce(1).write.mode(SaveMode.Overwrite).insertInto("ads.ads_register_sitenamenum")
+      }).toDF().coalesce(2).write.mode(SaveMode.Overwrite).insertInto("ads.ads_register_sitenamenum")
 
     //统计所属来源人数 pc mobile wechat app
     result.mapPartitions(partition => {

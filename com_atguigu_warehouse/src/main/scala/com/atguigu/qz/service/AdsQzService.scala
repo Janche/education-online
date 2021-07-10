@@ -24,13 +24,13 @@ object  AdsQzService {
       agg(avg("score").cast("decimal(4,1)").as("avgscore"),
         avg("spendtime").cast("decimal(10,1)").as("avgspendtime"))
       .select("paperviewid", "paperviewname", "avgscore", "avgspendtime", "dt", "dn")
-      .coalesce(3).write.mode(SaveMode.Append).insertInto("ads.ads_paper_avgtimeandscore")
+      .coalesce(1).write.mode(SaveMode.Append).insertInto("ads.ads_paper_avgtimeandscore")
 
     val topscore = sparkSession.sql("select paperviewid,paperviewname,score,dt,dn from dws.dws_user_paper_detail")
       .where(s"dt=$dt").groupBy("paperviewid", "paperviewname", "dt", "dn")
       .agg(max("score").as("maxscore"), min("score").as("minscore"))
       .select("paperviewid", "paperviewname", "maxscore", "minscore", "dt", "dn")
-      .coalesce(3).write.mode(SaveMode.Append).insertInto("ads.ads_paper_maxdetail")
+      .coalesce(2).write.mode(SaveMode.Append).insertInto("ads.ads_paper_maxdetail")
 
     val top3UserDetail = sparkSession.sql("select * from dws.dws_user_paper_detail")
       .where(s"dt=$dt").select("userid", "paperviewid", "paperviewname", "chaptername", "pointname"
@@ -39,7 +39,7 @@ object  AdsQzService {
       .where("rk<4")
       .select("userid", "paperviewid", "paperviewname", "chaptername", "pointname", "sitecoursename"
         , "coursename", "majorname", "shortname", "papername", "score", "rk", "dt", "dn")
-      .coalesce(3).write.mode(SaveMode.Append).insertInto("ads.ads_top3_userdetail")
+      .coalesce(2).write.mode(SaveMode.Append).insertInto("ads.ads_top3_userdetail")
 
     val low3UserDetail = sparkSession.sql("select *from dws.dws_user_paper_detail")
       .where(s"dt=$dt").select("userid", "paperviewid", "paperviewname", "chaptername", "pointname"
@@ -48,7 +48,7 @@ object  AdsQzService {
       .where("rk<4")
       .select("userid", "paperviewid", "paperviewname", "chaptername", "pointname", "sitecoursename"
         , "coursename", "majorname", "shortname", "papername", "score", "rk", "dt", "dn")
-      .coalesce(3).write.mode(SaveMode.Append).insertInto("ads.ads_low3_userdetail")
+      .coalesce(2).write.mode(SaveMode.Append).insertInto("ads.ads_low3_userdetail")
 
     val paperScore = sparkSession.sql("select *from dws.dws_user_paper_detail")
       .where(s"dt=$dt")
@@ -63,7 +63,7 @@ object  AdsQzService {
       .agg(concat_ws(",", collect_list(col("userid").cast("string").as("userids"))).as("userids"))
       .select("paperviewid", "paperviewname", "score_segment", "userids", "dt", "dn")
       .orderBy("paperviewid", "score_segment")
-      .coalesce(3).write.mode(SaveMode.Append).insertInto("ads.ads_paper_scoresegment_user")
+      .coalesce(2).write.mode(SaveMode.Append).insertInto("ads.ads_paper_scoresegment_user")
 
     val paperPassDetail = sparkSession.sql("select * from dws.dws_user_paper_detail").cache()
     val unPassDetail = paperPassDetail.select("paperviewid", "paperviewname", "dn", "dt")

@@ -32,7 +32,7 @@ object PageStreaming {
     val ssc = new StreamingContext(conf, Seconds(3))
     val topics = Array("page_topic")
     val kafkaMap: Map[String, Object] = Map[String, Object](
-      "bootstrap.servers" -> "hadoop102:9092,hadoop103:9092,hadoop104:9092",
+      "bootstrap.servers" -> "hadoop101:9092,hadoop102:9092,hadoop103:9092",
       "key.deserializer" -> classOf[StringDeserializer],
       "value.deserializer" -> classOf[StringDeserializer],
       "group.id" -> groupid,
@@ -106,7 +106,7 @@ object PageStreaming {
 
 
 //    ssc.sparkContext.addFile(this.getClass.getResource("/ip2region.db").getPath) //广播文件
-    ssc.sparkContext.addFile("hdfs://nameservice1/user/atguigu/sparkstreaming/ip2region.db")  //广播文件
+    ssc.sparkContext.addFile("hdfs://mycluster/user/atguigu/sparkstreaming/ip2region.db")  //广播文件
 
     val ipDStream = dsStream.mapPartitions(patitions => {
       val dbFile = SparkFiles.get("ip2region.db")

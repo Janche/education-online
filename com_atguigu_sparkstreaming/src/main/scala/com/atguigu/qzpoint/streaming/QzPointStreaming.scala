@@ -37,7 +37,7 @@ object QzPointStreaming {
     val ssc = new StreamingContext(conf, Seconds(3))
     val topics = Array("qz_log")
     val kafkaMap: Map[String, Object] = Map[String, Object](
-      "bootstrap.servers" -> "hadoop102:9092,hadoop103:9092,hadoop104:9092",
+      "bootstrap.servers" -> "hadoop101:9092,hadoop102:9092,hadoop103:9092",
       "key.deserializer" -> classOf[StringDeserializer],
       "value.deserializer" -> classOf[StringDeserializer],
       "group.id" -> groupid,
@@ -86,7 +86,7 @@ object QzPointStreaming {
         (uid, courseid, pointid, questionid, istrue, createtime)
       }))
     dsStream.foreachRDD(rdd => {
-      //在操控mysql之前先聚合rdd，预防多线程安全问题
+      //在操控mysql之前先聚合rdd，预防多线程安全问题, 将并发转为并行操作，规避掉多线程的并发问题，防止多个线程读取MySQL中同一个topic下的同一个分区的offset
       //获取相同用户 同一课程 同一知识点的数据
       val groupRdd = rdd.groupBy(item => item._1 + "-" + item._2 + "-" + item._3)
       groupRdd.foreachPartition(partition => {

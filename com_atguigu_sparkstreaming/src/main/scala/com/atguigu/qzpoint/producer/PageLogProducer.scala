@@ -11,10 +11,10 @@ object PageLogProducer {
     val sparkConf = new SparkConf().setAppName("pageProducer").setMaster("local[*]")
     val ssc = new SparkContext(sparkConf)
 //    System.setProperty("hadoop.home.dir", "D:\\hadoop\\hadoop-common-2.2.0-bin-master")
-    val resultLog = ssc.textFile(this.getClass.getResource("/page.log").toURI.getPath, 10)
+    val resultLog = ssc.textFile("file://"+this.getClass.getResource("/page.log").toURI.getPath, 10)
       .foreachPartition(partitoin => {
         val props = new Properties()
-        props.put("bootstrap.servers", "hadoop102:9092,hadoop103:9092,hadoop104:9092")
+        props.put("bootstrap.servers", "hadoop101:9092,hadoop102:9092,hadoop103:9092")
         props.put("acks", "1")
         props.put("batch.size", "16384")
         props.put("linger.ms", "10")

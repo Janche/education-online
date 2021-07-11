@@ -2,8 +2,6 @@ package com.atguigu.qzpoint.streaming
 
 import java.lang
 import java.sql.ResultSet
-import java.util.Random
-
 import com.atguigu.qzpoint.util.{DataSourceUtil, QueryCallback, SqlProxy}
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.TopicPartition
@@ -18,18 +16,113 @@ import scala.collection.mutable
 object RegisterStreaming {
   private val groupid = "register_group_test"
 
-  def main(args: Array[String]): Unit = {
-    System.setProperty("HADOOP_USER_NAME", "atguigu")
+  def test()={
+    System.setProperty("HADOOP_USER_NAME", "root")
     val conf = new SparkConf().setAppName(this.getClass.getSimpleName)
-      .set("spark.streaming.kafka.maxRatePerPartition", "100")
+      .set("spark.streaming.kafka.maxRatePerPartition", "10")
+      .setMaster("local[*]")
+    val ssc = new StreamingContext(conf, Seconds(3))
+    val sparkContext = ssc.sparkContext
+    val topics = Array("register_topic")
+    val kafkaMap: Map[String, Object] = Map[String, Object](
+      "bootstrap.servers" -> "hadoop101:9092,hadoop102:9092,hadoop103:9092",
+      "key.deserializer" -> classOf[StringDeserializer],
+      "value.deserializer" -> classOf[StringDeserializer],
+      "group.id" -> groupid,
+      //如果是true，则这个消费者的偏移量会在后台自动提交，但是kafka宕机容易丢失数据
+      //如果是false，则需要手动维护kafka偏移量
+      "enable.auto.commit" -> false
+    )
+    sparkContext.hadoopConfiguration.set("fs.defaultFS", "hdfs://mycluster")
+    sparkContext.hadoopConfiguration.set("dfs.nameservices", "mycluster")
+    // sparkStreaming对有状态的数据操作，需要设定检查点目录，然后将状态保存到检查点中
+    ssc.checkpoint("/user/atguigu/sparkstreaming/checkpoint")
+    //查询mysql中是否有偏移量
+    val sqlProxy = new SqlProxy()
+    val client = DataSourceUtil.getConnection
+    val offsetMap = new mutable.HashMap[TopicPartition, Long]()
+
+    try{
+      sqlProxy.executeQuery(client, "select * from offset_manager where groupid=?", Array(groupid), new QueryCallback {
+        override def process(rs: ResultSet): Unit = {
+          while (rs.next()) {
+            val topic = rs.getString(2)
+            val partition = rs.getInt(3)
+            val offset = rs.getLong(4)
+            val topicPartition = new TopicPartition(topic, partition)
+            offsetMap.put(topicPartition, offset)
+          }
+          rs.close()
+        }
+      })
+    } catch {
+      case e: Exception => e.printStackTrace()
+    } finally {
+      sqlProxy.shutdown(client)
+    }
+    //设置kafka消费数据的参数  判断本地是否有偏移量  有则根据偏移量继续消费 无则重新消费
+    val dStream: InputDStream[ConsumerRecord[String, String]] = if (offsetMap.isEmpty) {
+      KafkaUtils createDirectStream(ssc, LocationStrategies.PreferConsistent, ConsumerStrategies.Subscribe(topics, kafkaMap))
+    } else {
+      KafkaUtils.createDirectStream(ssc, LocationStrategies.PreferConsistent, ConsumerStrategies.Subscribe(topics, kafkaMap, offsetMap))
+    }
+    val resultDStream = dStream.filter(item => item.value().split("\t").length == 3)
+      .mapPartitions(partition => {
+        partition.map(item => {
+          val line = item.value()
+          val arr = line.split("\t")
+          val appName = arr(0) match {
+            case "1" => "PC"
+            case "2" => "APP"
+            case "_" => "Other"
+          }
+          (appName, 1)
+        })
+      })
+    resultDStream.cache()
+    resultDStream.reduceByKeyAndWindow((x,y)=> x+y, Seconds(60), Seconds(6))
+
+   //"+++++++++++++++++++++++实时注册人数+++++++++++++++++++++++"
+    val updateFunc = (values: Seq[Int], state: Option[Int]) => {
+      val currentCount = values.sum //本批次求和
+      val previousCount = state.getOrElse(0) //历史数据
+      Some(currentCount + previousCount)
+    }
+    resultDStream.updateStateByKey(updateFunc).print()
+   //"++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+
+    dStream.foreachRDD(rdd =>{
+      val sqlProxy = new SqlProxy()
+      val client = DataSourceUtil.getConnection
+      try{
+        val offsetRanges = rdd.asInstanceOf[HasOffsetRanges].offsetRanges
+        offsetRanges.foreach(item => {
+          sqlProxy.executeUpdate(client, "replace into offset_manager (groupid, topic, partition, untilOffset) values(?,?,?,?)",
+            Array(groupid, item.topic, item.partition, item.untilOffset))
+        })
+      }catch {
+        case e: Exception => e.printStackTrace()
+      }finally {
+        sqlProxy.shutdown(client)
+      }
+    })Ø
+    ssc.start()
+    ssc.awaitTermination()
+
+  }
+
+  def main(args: Array[String]): Unit = {
+    System.setProperty("HADOOP_USER_NAME", "root")
+    val conf = new SparkConf().setAppName(this.getClass.getSimpleName)
+      .set("spark.streaming.kafka.maxRatePerPartition", "10")
 //      .set("spark.streaming.backpressure.enabled", "true")
 //      .set("spark.streaming.stopGracefullyOnShutdown", "true")
-//      .setMaster("local[*]")
+      .setMaster("local[*]")
     val ssc = new StreamingContext(conf, Seconds(3))
     val sparkContext: SparkContext = ssc.sparkContext
     val topics = Array("register_topic")
     val kafkaMap: Map[String, Object] = Map[String, Object](
-      "bootstrap.servers" -> "hadoop102:9092,hadoop103:9092,hadoop104:9092",
+      "bootstrap.servers" -> "hadoop101:9092,hadoop102:9092,hadoop103:9092",
       "key.deserializer" -> classOf[StringDeserializer],
       "value.deserializer" -> classOf[StringDeserializer],
       "group.id" -> groupid,
@@ -38,8 +131,8 @@ object RegisterStreaming {
       //如果是false，则需要手动维护kafka偏移量
       "enable.auto.commit" -> (false: lang.Boolean)
     )
-    sparkContext.hadoopConfiguration.set("fs.defaultFS", "hdfs://nameservice1")
-    sparkContext.hadoopConfiguration.set("dfs.nameservices", "nameservice1")
+    sparkContext.hadoopConfiguration.set("fs.defaultFS", "hdfs://mycluster")
+    sparkContext.hadoopConfiguration.set("dfs.nameservices", "mycluster")
     //sparkStreaming对有状态的数据操作，需要设定检查点目录，然后将状态保存到检查点中
     ssc.checkpoint("/user/atguigu/sparkstreaming/checkpoint")
     //查询mysql中是否有偏移量

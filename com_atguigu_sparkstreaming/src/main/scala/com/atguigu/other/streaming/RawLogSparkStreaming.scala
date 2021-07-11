@@ -29,7 +29,7 @@ object RawLogSparkStreaming {
     System.setProperty("HADOOP_USER_NAME", "atguigu")
     val topic = "page_topic" //args(0)
     val groupid = "raw_groupid" //args(1)
-    val kafka_broker_list = "hadoop102:9092,hadoop103:9092,hadoop104:9092" //args(2)
+    val kafka_broker_list = "hadoop101:9092,hadoop102:9092,hadoop103:9092" //args(2)
     val topicTable = "offset_manager" //args(3)
     val sparkConf = new SparkConf().setAppName("RawLog_SparkStreaming")
       .set("spark.streaming.kafka.maxRatePerPartition", "20")

@@ -27,7 +27,7 @@ object CourseLearnStreaming {
     val ssc = new StreamingContext(conf, Seconds(3))
     val topics = Array("course_learn")
     val kafkaMap: Map[String, Object] = Map[String, Object](
-      "bootstrap.servers" -> "hadoop102:9092,hadoop103:9092,hadoop104:9092",
+      "bootstrap.servers" -> "hadoop101:9092,hadoop102:9092,hadoop103:9092",
       "key.deserializer" -> classOf[StringDeserializer],
       "value.deserializer" -> classOf[StringDeserializer],
       "group.id" -> groupid,

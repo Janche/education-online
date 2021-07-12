@@ -4,7 +4,6 @@ import java.lang
 import java.sql.{Connection, ResultSet}
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.UUID
 
 import com.atguigu.qzpoint.bean.LearnModel
 import com.atguigu.qzpoint.util.{DataSourceUtil, QueryCallback, SqlProxy}

@@ -25,7 +25,7 @@ object PageStreaming {
 
   def main(args: Array[String]): Unit = {
     val conf = new SparkConf().setAppName(this.getClass.getSimpleName)
-      .set("spark.streaming.kafka.maxRatePerPartition", "30")
+      .set("spark.streaming.kafka.maxRatePerPartition", "10")
       .set("spark.streaming.backpressure.enabled", "true")
       .set("spark.streaming.stopGracefullyOnShutdown", "true")
 //      .setMaster("local[*]")
